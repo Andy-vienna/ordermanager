@@ -54,6 +54,9 @@ import javax.swing.JScrollPane;
 import javax.swing.JTree;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
+import javax.swing.border.CompoundBorder;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeModel;
@@ -146,8 +149,15 @@ public class Manager extends JFrame {
 			}
 		});
 		fileTree.setCellRenderer(new FolderOnlyTreeCellRenderer());
+		//fileTree.setBackground(new Color(240, 240, 240));
 
-		add(new JScrollPane(fileTree), BorderLayout.CENTER);
+		JScrollPane treeScrollPane = new JScrollPane(fileTree);
+		treeScrollPane.setBorder(new CompoundBorder(
+		        new LineBorder(new Color(240, 240, 240), 3, true), // true = runde Ecken
+		        new EmptyBorder(5, 5, 5, 5)
+		));
+		//treeScrollPane.setBorder(BorderFactory.createTitledBorder("Programa"));
+		add(treeScrollPane, BorderLayout.CENTER);
 
 		// Labels formattieren
 		actLabel.setHorizontalAlignment(SwingConstants.LEFT);
@@ -174,7 +184,7 @@ public class Manager extends JFrame {
 		actionPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5)); // schöner Rand
 
 		actionPanel.add(statusRow);
-		actionPanel.add(Box.createRigidArea(new Dimension(0, 10))); // Abstand
+		actionPanel.add(Box.createRigidArea(new Dimension(0, 5))); // Abstand
 		actionPanel.add(copyButton);
 
 		// und rein ins Hauptlayout
@@ -343,8 +353,16 @@ public class Manager extends JFrame {
 			targetDir = Paths.get(props.getProperty("targetDir"));
 			archiveDir = Paths.get(props.getProperty("archiveDir"));
 			lastProg = props.getProperty("lastProg");
-			if (lastProg != null) {
-				lastCopiedLabel.setText(lastProg);
+			
+			if (!lastProg.isBlank()) {
+			    String[] parts = lastProg.split("/");
+			    if (parts.length == 2) {
+			        String ordner = parts[0];
+			        String name = parts[1];
+			        lastCopiedLabel.setText("<html>" +
+			            "<span style='color:#009900; font-weight:bold;'>" + ordner + "</span> / " +
+			            "<span style='color:#0066cc;'>" + name + "</span></html>");
+			    }
 			}else {
 				lastCopiedLabel.setText("nenhum programa ativo ...");
 			}
@@ -513,7 +531,7 @@ public class Manager extends JFrame {
 			// - flach ins targetDir kopieren
 			// - strukturiert ins archiveDir verschieben
 			List<Path> toArchive = new ArrayList<>();
-
+			
 			Files.list(selectedSourcePath.getParent())
 	    		.filter(Files::isRegularFile)
 	    		.filter(path -> getBaseName(path.getFileName().toString()).equals(selectedBaseName))
@@ -546,8 +564,14 @@ public class Manager extends JFrame {
 			deleteEmptyDirectories(sourceDir);
 
 			// 5. GUI-Label aktualisieren
-			lastCopiedLabel.setText(selectedBaseName);
-			saveConfig(selectedBaseName);
+			String name = selectedBaseName;
+			String ordner = selectedSourcePath.getParent().getFileName().toString();
+			lastCopiedLabel.setText("<html>" +
+				    "<span style='color:#009900; font-weight:bold;'>" + ordner + "</span>" +
+				    " / " +
+				    "<span style='color:#0066cc;'>" + name + "</span>" +
+				    "</html>");
+			saveConfig(ordner + "/" + name);
 
 		} catch (IOException e) {
 			logger.severe("Fehler beim Kopiervorgang - " + e.getMessage());
