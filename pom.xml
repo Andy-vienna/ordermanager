@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.andy</groupId>
 	<artifactId>ordermanager</artifactId>
-	<version>1.2.4-auratronic</version>
+	<version>1.2.5-auratronic</version>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

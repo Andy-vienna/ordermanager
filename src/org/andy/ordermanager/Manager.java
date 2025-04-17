@@ -519,13 +519,16 @@ public class Manager extends JFrame {
 
 		try {
 			// 1. Zielverzeichnis leeren
-			Files.walk(targetDir).filter(Files::isRegularFile).forEach(path -> {
-				try {
-					Files.delete(path);
-				} catch (IOException ex) {
-					logger.severe("Fehler beim Löschen im Ziel - " + ex.getMessage());
-				}
-			});
+			Files.walk(targetDir)
+			    .filter(Files::isRegularFile)
+			    .filter(path -> !path.getFileName().toString().equalsIgnoreCase("PROGRAM.MPF")) // <-- Ausnahme
+			    .forEach(path -> {
+			        try {
+			            Files.delete(path);
+			        } catch (IOException ex) {
+			            logger.severe("Fehler beim Löschen im Ziel - " + ex.getMessage());
+			        }
+			    });
 
 			// 2. Dateien mit passendem Basename finden und gleichzeitig:
 			// - flach ins targetDir kopieren
@@ -572,6 +575,26 @@ public class Manager extends JFrame {
 				    "<span style='color:#0066cc;'>" + name + "</span>" +
 				    "</html>");
 			saveConfig(ordner + "/" + name);
+			
+			// 6. MPF-Datei im Zielverzeichnis finden (außer PROGRAM.MPF) und Inhalt dort eintragen
+			try (Stream<Path> files = Files.list(targetDir)) {
+			    Path mpfFile = files
+			        .filter(Files::isRegularFile)
+			        .filter(p -> p.getFileName().toString().toLowerCase().endsWith(".mpf"))
+			        .filter(p -> !p.getFileName().toString().equalsIgnoreCase("PROGRAM.MPF")) // <--- wichtig!
+			        .findFirst()
+			        .orElse(null);
+
+			    if (mpfFile != null) {
+			        String mpfName = mpfFile.getFileName().toString();
+			        Path editableFile = targetDir.resolve("PROGRAM.MPF"); // ← das ist deine Ziel/Steuerdatei
+
+			        String content = "EXTCALL \"" + mpfName + "\"\nM30\n";
+			        Files.writeString(editableFile, content);
+			    }
+			} catch (IOException ex) {
+			    logger.severe("Fehler beim Schreiben in PROGRAM.MPF: " + ex.getMessage());
+			}
 
 		} catch (IOException e) {
 			logger.severe("Fehler beim Kopiervorgang - " + e.getMessage());
