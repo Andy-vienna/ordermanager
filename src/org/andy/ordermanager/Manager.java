@@ -148,6 +148,19 @@ public class Manager extends JFrame {
 				selectedSourcePath = null;
 			}
 		});
+		fileTree.addMouseListener(new java.awt.event.MouseAdapter() {
+		    @Override
+		    public void mouseClicked(java.awt.event.MouseEvent e) {
+		        if (e.getClickCount() == 2) { // Doppelklick
+		            TreePath path = fileTree.getPathForLocation(e.getX(), e.getY());
+		            if (path != null && fileTree.getLastSelectedPathComponent() instanceof DefaultMutableTreeNode node && node.isLeaf()) {
+		                selectedBaseName = node.toString();
+		                selectedSourcePath = sourceDir.resolve(getRelativePath(path));
+		                moveSelectedFiles();
+		            }
+		        }
+		    }
+		});
 		fileTree.setCellRenderer(new FolderOnlyTreeCellRenderer());
 		//fileTree.setBackground(new Color(240, 240, 240));
 
@@ -503,6 +516,16 @@ public class Manager extends JFrame {
 		}
 
 		return nameWithoutExtension;
+	}
+	
+	private String getRelativePath(TreePath path) {
+	    StringBuilder relativePath = new StringBuilder();
+	    for (int i = 1; i < path.getPathCount(); i++) {
+	        relativePath.append(path.getPathComponent(i).toString());
+	        if (i < path.getPathCount() - 1)
+	            relativePath.append("/");
+	    }
+	    return relativePath.toString();
 	}
 
 	// ###################################################################################################################################################
