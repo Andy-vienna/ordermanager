@@ -1,0 +1,12 @@
+version: 2
+updates:
+  - package-ecosystem: "maven"
+    directory: "/"              # pom.xml liegt im Root
+    schedule:
+      interval: "weekly"        # prüft jede Woche auf Updates
+      day: "monday"             # optional: montags
+      time: "06:00"             # UTC-Zeit (08:00 MEZ im Winter, 07:00 MESZ im Sommer)
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore"
+      include: "scope"
