@@ -1,4 +1,4 @@
-package org.andy.ordermanager;
+package org.andy.om.single;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -169,7 +169,6 @@ public class Manager extends JFrame {
 		        new LineBorder(new Color(240, 240, 240), 3, true), // true = runde Ecken
 		        new EmptyBorder(5, 5, 5, 5)
 		));
-		//treeScrollPane.setBorder(BorderFactory.createTitledBorder("Programa"));
 		add(treeScrollPane, BorderLayout.CENTER);
 
 		// Labels formattieren
@@ -195,7 +194,6 @@ public class Manager extends JFrame {
 		JPanel actionPanel = new JPanel();
 		actionPanel.setLayout(new BoxLayout(actionPanel, BoxLayout.Y_AXIS));
 		actionPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5)); // schöner Rand
-
 		actionPanel.add(statusRow);
 		actionPanel.add(Box.createRigidArea(new Dimension(0, 5))); // Abstand
 		actionPanel.add(copyButton);

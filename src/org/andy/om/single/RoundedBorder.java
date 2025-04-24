@@ -1,4 +1,4 @@
-package org.andy.ordermanager;
+package org.andy.om.single;
 
 import java.awt.Color;
 import java.awt.Component;
