@@ -16,14 +16,17 @@ import java.net.ServerSocket;
 import java.net.URL;
 import java.nio.file.ClosedWatchServiceException;
 import java.nio.file.FileSystems;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Enumeration;
@@ -233,46 +236,61 @@ public class Manager extends JFrame {
 	 * 
 	 */
 	private void startWatching() {
-		if (watching)
-			return; // Schon aktiv
+	    if (watching)
+	        return; // Schon aktiv
 
-		watching = true;
-		Thread watcherThread = new Thread(() -> {
-			try {
-				watchService = FileSystems.getDefault().newWatchService();
-				sourceDir.register(watchService, StandardWatchEventKinds.ENTRY_CREATE,
-						StandardWatchEventKinds.ENTRY_DELETE, StandardWatchEventKinds.ENTRY_MODIFY);
+	    watching = true;
+	    Thread watcherThread = new Thread(() -> {
+	        try {
+	            watchService = FileSystems.getDefault().newWatchService();
+	            registerAllDirs(sourceDir, watchService);
 
-				while (!Thread.currentThread().isInterrupted()) {
-					WatchKey key = null;
-					try {
-						key = watchService.take(); // blockiert bis Event kommt
-						if (key == null)
-							continue;
+	            while (!Thread.currentThread().isInterrupted()) {
+	                WatchKey key = null;
+	                try {
+	                    key = watchService.take(); // blockiert bis Event kommt
+	                    if (key == null)
+	                        continue;
 
-						for (WatchEvent<?> _ : key.pollEvents()) {
-							// Änderungen erkannt – Liste aktualisieren
-						}
+	                    for (WatchEvent<?> event : key.pollEvents()) {
+	                        WatchEvent.Kind<?> kind = event.kind();
+	                        Path dir = (Path) key.watchable();
+	                        Path fullPath = dir.resolve((Path) event.context());
 
-						// SwingUtilities.invokeLater(this::updateFileList);
-						SwingUtilities.invokeLater(this::updateFileTree);
+	                        // Neuen Ordner registrieren
+	                        if (kind == StandardWatchEventKinds.ENTRY_CREATE) {
+	                            try {
+	                                if (Files.isDirectory(fullPath)) {
+	                                    registerAllDirs(fullPath, watchService);
+	                                }
+	                            } catch (IOException e) {
+	                                logger.warning("Fehler beim Registrieren von: " + fullPath + " – " + e.getMessage());
+	                            }
+	                        }
+	                    }
 
-					} catch (ClosedWatchServiceException | InterruptedException e) {
-						break;
-					} finally {
-						if (key != null && !key.reset()) {
-							break;
-						}
-					}
-				}
-			} catch (IOException e) {
-				logger.severe("Fehler beim Starten des WatchService - " + e.getMessage());
-			}
-		});
+	                    SwingUtilities.invokeLater(this::updateFileTree);
 
-		watcherThread.setDaemon(true);
-		watcherThread.start();
+	                } catch (ClosedWatchServiceException | InterruptedException e) {
+	                    break;
+	                } catch (Exception ex) {
+	                    logger.warning("Fehler im Watcher-Loop: " + ex.getMessage());
+	                } finally {
+	                    if (key != null && !key.reset()) {
+	                        logger.info("Datei oder SubDir nicht mehr vorhanden, watchService arbeitet weiter ...");
+	                        //break;
+	                    }
+	                }
+	            }
+	        } catch (IOException e) {
+	            logger.severe("Fehler beim Starten des WatchService - " + e.getMessage());
+	        }
+	    });
+
+	    watcherThread.setDaemon(true);
+	    watcherThread.start();
 	}
+
 
 	/**
 	 * 
@@ -314,7 +332,7 @@ public class Manager extends JFrame {
 		consoleHandler.setLevel(Level.INFO);
 		rootLogger.addHandler(consoleHandler);
 
-		FileHandler fileHandler = new FileHandler("ordermanager.log", true);
+		FileHandler fileHandler = new FileHandler("ordermanager.log", false);
 		fileHandler.setLevel(Level.ALL);
 		fileHandler.setFormatter(new SimpleFormatter());
 		rootLogger.addHandler(fileHandler);
@@ -524,6 +542,19 @@ public class Manager extends JFrame {
 	            relativePath.append("/");
 	    }
 	    return relativePath.toString();
+	}
+	
+	private void registerAllDirs(Path start, WatchService watcher) throws IOException {
+	    Files.walkFileTree(start, new SimpleFileVisitor<Path>() {
+	        @Override
+	        public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+	            dir.register(watcher,
+	                    StandardWatchEventKinds.ENTRY_CREATE,
+	                    StandardWatchEventKinds.ENTRY_DELETE,
+	                    StandardWatchEventKinds.ENTRY_MODIFY);
+	            return FileVisitResult.CONTINUE;
+	        }
+	    });
 	}
 
 	// ###################################################################################################################################################
